@@ -31,19 +31,6 @@ T self_dot_product(std::vector<T>& v)
     return res;
 }
 
-template <typename T>
-T diff_dot_product(std::vector<T>& u, std::vector<T>& v)
-{
-    T res = 0;
-    for (auto it1 = u.begin(), it2 = v.begin(); it1 != u.end() && it2 != v.end(); ++it1, ++it2)
-    {
-        res += (*it1 - *it2) * (*it1 - *it2);
-    }
-    return res;
-}
-
-
-
 
 template <typename T>
 float compute_diff(mpi::communicator comm, std::vector<T> u, std::vector<T> v)
@@ -59,13 +46,33 @@ float compute_diff(mpi::communicator comm, std::vector<T> u, std::vector<T> v)
     float diff = -1;
     if (!comm.rank())
     {
-        std::cerr << "full den: " << full_denominator << std::endl;
-        std::cerr << "full num: " << full_numerator << std::endl;
-
+        // std::cerr << "full den: " << full_denominator << std::endl;
+        // std::cerr << "full num: " << full_numerator << std::endl;
         diff = std::log(full_numerator / full_denominator);
     }
     return diff;
 }
+
+
+class KernelComparator
+{
+public:
+    KernelComparator(mpi::communicator comm, std::string ref_filename, std::string val_filename) :
+        comm(comm),
+        ref_reader(ref_filename, comm),
+        val_reader(val_filename, comm) {}
+    ~KernelComparator() {}
+
+    void compare_single(float tolerance, std::string var_name)
+    {
+        auto ref = ref_reader.schedule_read<float>(var_name, comm.rank());
+        auto val = ref_reader.schedule_read<float>(var_name, comm.rank());
+    }
+private:
+    mpi::communicator comm;
+    ADIOSReader ref_reader;
+    ADIOSReader val_reader;
+};
 
 
 int main() {

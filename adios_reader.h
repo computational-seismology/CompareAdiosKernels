@@ -15,8 +15,8 @@ class ADIOSReader
 {
     constexpr static int blocking_read = 1;
 public:
-    ADIOSReader(const char* fname, mpi::communicator& comm) {
-        my_file = adios_read_open_file(fname, ADIOS_READ_METHOD_BP, comm);
+    ADIOSReader(std::string filename, mpi::communicator& comm) {
+        my_file = adios_read_open_file(filename.c_str(), ADIOS_READ_METHOD_BP, comm);
     }
     ~ADIOSReader() {
         adios_read_close(my_file);
