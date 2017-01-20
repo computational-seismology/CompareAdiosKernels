@@ -1,3 +1,5 @@
+#include "adios_reader.h"
+
 #include <iostream>
 #include <vector>
 #include <numeric>
@@ -40,42 +42,7 @@ T diff_dot_product(std::vector<T>& u, std::vector<T>& v)
     return res;
 }
 
-class ADIOSReader
-{
-    constexpr static int blocking_read = 1;
-public:
-    ADIOSReader(const char* fname, mpi::communicator& comm) {
-        my_file = adios_read_open_file(fname, ADIOS_READ_METHOD_BP, comm);
-    }
-    ~ADIOSReader() {
-        adios_read_close(my_file);
-    }
-    // TODO: pass only dir_name
-    std::vector<float> schedule_read(const std::string& kernel_name, const std::string& region_name, int rank) {
-        std::string dir_name = kernel_name + "_kl_" + region_name + "/";
-        ADIOS_SELECTION* selection;
-        selection = adios_selection_writeblock(rank);
-        int local_dim_read;
-        int offset_read;
 
-        adios_schedule_read(my_file, selection, (dir_name + "local_dim").c_str(), 0, 1, &local_dim_read);
-        adios_schedule_read(my_file, selection, (dir_name + "offset").c_str(), 0, 1, &offset_read);
-        adios_perform_reads(my_file, blocking_read);
-
-        uint64_t local_dim = local_dim_read; // up
-        uint64_t offset = offset_read; // up
-        std::vector<float> v(local_dim_read);
-
-        selection = adios_selection_boundingbox(1, &offset, &local_dim);
-        adios_schedule_read(my_file, selection, "rhonotprime_kl_crust_mantle/array", 0, 1, &v[0]);
-        adios_perform_reads(my_file, blocking_read);
-
-        //return std::move(v);
-        return v;
-    }
-
-    ADIOS_FILE* my_file;
-};
 
 
 template <typename T>
@@ -85,7 +52,7 @@ float compute_diff(mpi::communicator comm, std::vector<T> u, std::vector<T> v)
     float full_denominator;
     mpi::reduce(comm, my_denominator, full_denominator, std::plus<float>(), 0);
 
-    float my_numerator = diff_dot_product(v, v);
+    float my_numerator = self_dot_product(v);
     float full_numerator;
     mpi::reduce(comm, my_numerator, full_numerator, std::plus<float>(), 0);
 
@@ -95,7 +62,7 @@ float compute_diff(mpi::communicator comm, std::vector<T> u, std::vector<T> v)
         std::cerr << "full den: " << full_denominator << std::endl;
         std::cerr << "full num: " << full_numerator << std::endl;
 
-        diff = std::sqrt(full_numerator / full_denominator);
+        diff = std::log(full_numerator / full_denominator);
     }
     return diff;
 }
@@ -117,8 +84,11 @@ int main() {
             ,std::make_pair(std::string("rho"), std::string("inner_core"))};
 
     for (auto& x : kernel_list) {
-        std::cerr << "looking at kernel: " << x.first << std::endl;
-        auto v = reader.schedule_read(x.first, x.second, world.rank());
+
+        std::string var_name = x.first + "_kl_" + x.second;
+
+        if (!world.rank()) std::cerr << "looking at kernel: " << var_name << std::endl;
+        auto v = reader.schedule_read<float>(var_name, world.rank());
 
         auto diff = compute_diff(world, v, v);
         if (!world.rank()) std::cerr << "Diff: " << diff << std::endl;
