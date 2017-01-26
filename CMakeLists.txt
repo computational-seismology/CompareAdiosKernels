@@ -4,7 +4,8 @@ project(CompareAdiosKernels)
 ###############################################################################
 
 set(CMAKE_CXX_STANDARD 11)
-find_package(Boost REQUIRED COMPONENTS mpi serialization system filesystem)
+find_package(Boost REQUIRED COMPONENTS mpi serialization system filesystem
+                                       program_options)
 find_package(MPI REQUIRED)
 
 ###############################################################################

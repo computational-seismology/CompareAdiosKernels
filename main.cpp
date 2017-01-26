@@ -1,107 +1,47 @@
-#include "adios_reader.h"
+#include "kernel_comparator.h"
+#include "parameters.h"
 
 #include <iostream>
 #include <vector>
 #include <numeric>
-#include <functional>
-#include <cmath>
 
-#include "adios_read.h"
 #include <boost/mpi/environment.hpp>
 #include <boost/mpi/communicator.hpp>
-#include <boost/mpi/collectives.hpp>
-#include <boost/mpi/operations.hpp>
 
-// #include <boost/program_options/cmdline.hpp>
 
 namespace mpi = boost::mpi;
+namespace kv = ::kernel_validation;
 
 
-// Log [int(reference-new)^2/int reference^2]
-
-template <typename T>
-T self_dot_product(std::vector<T>& v)
+int main(int argc, char* argv[])
 {
-    // transform_reduce
-    T res = 0;
-    for (const auto x : v)
-    {
-        res += x*x;
-    }
-    return res;
-}
-
-
-template <typename T>
-float compute_diff(mpi::communicator comm, std::vector<T> u, std::vector<T> v)
-{
-    float my_denominator = self_dot_product(v);
-    float full_denominator;
-    mpi::reduce(comm, my_denominator, full_denominator, std::plus<float>(), 0);
-
-    float my_numerator = self_dot_product(v);
-    float full_numerator;
-    mpi::reduce(comm, my_numerator, full_numerator, std::plus<float>(), 0);
-
-    float diff = -1;
-    if (!comm.rank())
-    {
-        // std::cerr << "full den: " << full_denominator << std::endl;
-        // std::cerr << "full num: " << full_numerator << std::endl;
-        diff = std::log(full_numerator / full_denominator);
-    }
-    return diff;
-}
-
-
-class KernelComparator
-{
-public:
-    KernelComparator(mpi::communicator comm, std::string ref_filename, std::string val_filename) :
-        comm(comm),
-        ref_reader(ref_filename, comm),
-        val_reader(val_filename, comm) {}
-    ~KernelComparator() {}
-
-    void compare_single(float tolerance, std::string var_name)
-    {
-        auto ref = ref_reader.schedule_read<float>(var_name, comm.rank());
-        auto val = ref_reader.schedule_read<float>(var_name, comm.rank());
-    }
-private:
-    mpi::communicator comm;
-    ADIOSReader ref_reader;
-    ADIOSReader val_reader;
-};
-
-
-int main() {
     mpi::environment env;
     mpi::communicator world;
 
-    if (!world.rank())
-        std::cerr << "Running MPI with: " << world.size() << " processes." << std::endl;
+    kv::Params params;
 
-    adios_read_init_method(ADIOS_READ_METHOD_BP, world, "");
+    try {
+      if (!world.rank()) {
+        params.set_from_cmdline(argc, argv);
+        params.print();
+      }
+      broadcast_params(world, params);
+      //if (!world.rank())
+        //std::cerr << "Running MPI with: " << world.size() << " processes." << std::endl;
 
-    ADIOSReader reader("../kernels.bp", world);
+      adios_read_init_method(ADIOS_READ_METHOD_BP, world, "");
 
-    std::vector<std::pair<std::string, std::string>> kernel_list =
-            {std::make_pair(std::string("rhonotprime"), std::string("crust_mantle"))
-            ,std::make_pair(std::string("rho"), std::string("inner_core"))};
+      KernelComparator comparator(world, params.get_reference_file(), params.get_kernels_file());
+      comparator.compare_multiple(100.f, params.get_kernel_names());
 
-    for (auto& x : kernel_list) {
+      adios_read_finalize_method(ADIOS_READ_METHOD_BP);
 
-        std::string var_name = x.first + "_kl_" + x.second;
-
-        if (!world.rank()) std::cerr << "looking at kernel: " << var_name << std::endl;
-        auto v = reader.schedule_read<float>(var_name, world.rank());
-
-        auto diff = compute_diff(world, v, v);
-        if (!world.rank()) std::cerr << "Diff: " << diff << std::endl;
+    } catch (std::runtime_error& e) {
+      std::cerr << e.what() << std::endl;
+      env.abort(-1);
+    } catch (std::exception& e) {
+      std::cerr << e.what() << std::endl;
+      env.abort(-1);
     }
-
-    adios_read_finalize_method(ADIOS_READ_METHOD_BP);
-
     return 0;
 }
