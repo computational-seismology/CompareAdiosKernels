@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
       adios_read_init_method(ADIOS_READ_METHOD_BP, world, "");
 
       // Actual work
-      KernelComparator comparator(world, params.get_reference_file(), params.get_kernels_file());
+      kv::KernelComparator comparator(world, params.get_reference_file(), params.get_kernels_file());
       comparator.compare_multiple(100.f, params.get_kernel_names());
 
       adios_read_finalize_method(ADIOS_READ_METHOD_BP);

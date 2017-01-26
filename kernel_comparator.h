@@ -16,6 +16,8 @@
 
 #include <cmath>
 
+namespace kernel_validation {
+
 
 template<typename T>
 T self_dot_product(const std::vector<T>& v)
@@ -56,10 +58,18 @@ public:
             : comm(comm),
               ref_reader(ref_filename, comm),
               val_reader(val_filename, comm) { }
-
     ~KernelComparator() { }
 
-    void compare_single(float tolerance, std::string var_name)
+    void compare_single(float tolerance, std::string var_name);
+    void compare_multiple(float tolerance, std::vector<std::string> kernel_list);
+
+private:
+    mpi::communicator comm;
+    ADIOSReader ref_reader;
+    ADIOSReader val_reader;
+};
+
+    void KernelComparator::compare_single(float tolerance, std::string var_name)
     {
         if (!comm.rank()) std::cerr << "looking at kernel: " << var_name << std::endl;
 
@@ -83,17 +93,13 @@ public:
             std::cerr << "Diff: " << diff << " ... moving on...\n";
         }
     }
-    void compare_multiple(float tolerance, std::vector<std::string> kernel_list)
+
+    void KernelComparator::compare_multiple(float tolerance, std::vector<std::string> kernel_list)
     {
         for (auto& var_name : kernel_list) {
             compare_single(tolerance, var_name);
         }
     }
 
-private:
-    mpi::communicator comm;
-    ADIOSReader ref_reader;
-    ADIOSReader val_reader;
-};
-
+}  // namespace kernel_validation
 #endif //COMPAREADIOSKERNELS_KERNEL_COMPARATOR_H
