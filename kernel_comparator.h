@@ -40,8 +40,6 @@ T compute_diff(const mpi::communicator& comm, const std::vector<T>& u, const std
 
     T diff = -1;
     if (!comm.rank()) {
-        // std::cerr << "full den: " << full_denominator << std::endl;
-        // std::cerr << "full num: " << full_numerator << std::endl;
         diff = std::log(full_numerator/full_denominator);
     }
     return diff;
@@ -68,11 +66,11 @@ public:
         if (!comm.rank()) {
             if (std::isnan(diff)) {
                 std::cerr << "[" << var_name << "] is NaN." << std::endl;
-                // throw ...
+                throw std::runtime_error("Difference is NaN.");
             }
             if (diff>tolerance) {
                 std::cerr << "[" << var_name << "] over tolerance: " << diff << " (> " << tolerance << std::endl;
-                // throw ...
+                throw std::runtime_error("Difference is over tolerance.");
             }
         }
         if (!comm.rank()) {
