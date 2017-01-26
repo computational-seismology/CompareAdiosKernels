@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <functional>
+#include <sstream>
 
 #include <cmath>
 
@@ -26,6 +27,7 @@ T self_dot_product(const std::vector<T>& v)
     }
     return res;
 }
+
 
 template<typename T>
 T compute_diff(const mpi::communicator& comm, const std::vector<T>& u, const std::vector<T>& v)
@@ -45,13 +47,15 @@ T compute_diff(const mpi::communicator& comm, const std::vector<T>& u, const std
     return diff;
 }
 
+
 class KernelComparator {
 public:
-    KernelComparator(mpi::communicator comm, std::string ref_filename, std::string val_filename)
-            :
-            comm(comm),
-            ref_reader(ref_filename, comm),
-            val_reader(val_filename, comm) { }
+    KernelComparator(mpi::communicator comm, 
+                     std::string ref_filename, 
+                     std::string val_filename)
+            : comm(comm),
+              ref_reader(ref_filename, comm),
+              val_reader(val_filename, comm) { }
 
     ~KernelComparator() { }
 
@@ -65,12 +69,14 @@ public:
 
         if (!comm.rank()) {
             if (std::isnan(diff)) {
-                std::cerr << "[" << var_name << "] is NaN." << std::endl;
-                throw std::runtime_error("Difference is NaN.");
+                std::stringstream buffer;
+                buffer << "[" << var_name << "] is NaN.";
+                throw std::runtime_error(buffer.str());
             }
             if (diff>tolerance) {
-                std::cerr << "[" << var_name << "] over tolerance: " << diff << " (> " << tolerance << std::endl;
-                throw std::runtime_error("Difference is over tolerance.");
+                std::stringstream buffer;
+                buffer << "[" << var_name << "] over tolerance: " << diff << " > " << tolerance << ".";
+                throw std::runtime_error(buffer.str());
             }
         }
         if (!comm.rank()) {
