@@ -78,7 +78,7 @@ namespace kernel_validation {
          * Accessor
          * @return The tolerance of comparisons
          */
-        std::vector<std::string> get_tolerance() { return kernel_names; }
+        float get_tolerance() { return tolerance; }
 
 
         /**
