@@ -21,7 +21,7 @@ execute_process(COMMAND ${ADIOS_CONFIG_EXECUTABLE} -l OUTPUT_VARIABLE
 
 ###############################################################################
 
-set(SOURCE_FILES main.cpp)
+set(SOURCE_FILES main.cpp Params.cpp)
 set(CMAKE_INCLUDE_CURRENT_DIR on)
 
 include_directories(${BOOST_INCLUDE_DIRS}

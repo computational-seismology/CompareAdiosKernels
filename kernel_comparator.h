@@ -18,56 +18,55 @@
 
 namespace kernel_validation {
 
-
-template<typename T>
-T self_dot_product(const std::vector<T>& v)
-{
-    // transform_reduce
-    T res = 0;
-    for (const auto x : v) {
-        res += x*x;
+    template<typename T>
+    T self_dot_product(const std::vector<T>& v)
+    {
+        // transform_reduce
+        T res = 0;
+        for (const auto x : v) {
+            res += x*x;
+        }
+        return res;
     }
-    return res;
-}
 
+    template<typename T>
+    T compute_diff(const mpi::communicator& comm, const std::vector<T>& u, const std::vector<T>& v)
+    {
+        T my_denominator = self_dot_product(v);
+        T full_denominator;
+        mpi::reduce(comm, my_denominator, full_denominator, std::plus<T>(), 0);
 
-template<typename T>
-T compute_diff(const mpi::communicator& comm, const std::vector<T>& u, const std::vector<T>& v)
-{
-    T my_denominator = self_dot_product(v);
-    T full_denominator;
-    mpi::reduce(comm, my_denominator, full_denominator, std::plus<T>(), 0);
+        T my_numerator = self_dot_product(v);
+        T full_numerator;
+        mpi::reduce(comm, my_numerator, full_numerator, std::plus<T>(), 0);
 
-    T my_numerator = self_dot_product(v);
-    T full_numerator;
-    mpi::reduce(comm, my_numerator, full_numerator, std::plus<T>(), 0);
-
-    T diff = -1;
-    if (!comm.rank()) {
-        diff = std::log(full_numerator/full_denominator);
+        T diff = -1;
+        if (!comm.rank()) {
+            diff = std::log(full_numerator/full_denominator);
+        }
+        return diff;
     }
-    return diff;
-}
 
+    class KernelComparator {
+    public:
+        KernelComparator(mpi::communicator comm,
+                std::string ref_filename,
+                std::string val_filename)
+                :comm(comm),
+                 ref_reader(ref_filename, comm),
+                 val_reader(val_filename, comm) { }
 
-class KernelComparator {
-public:
-    KernelComparator(mpi::communicator comm, 
-                     std::string ref_filename, 
-                     std::string val_filename)
-            : comm(comm),
-              ref_reader(ref_filename, comm),
-              val_reader(val_filename, comm) { }
-    ~KernelComparator() { }
+        ~KernelComparator() { }
 
-    void compare_single(float tolerance, std::string var_name);
-    void compare_multiple(float tolerance, std::vector<std::string> kernel_list);
+        void compare_single(float tolerance, std::string var_name);
 
-private:
-    mpi::communicator comm;
-    ADIOSReader ref_reader;
-    ADIOSReader val_reader;
-};
+        void compare_multiple(float tolerance, std::vector<std::string> kernel_list);
+
+    private:
+        mpi::communicator comm;
+        ADIOSReader ref_reader;
+        ADIOSReader val_reader;
+    };
 
     void KernelComparator::compare_single(float tolerance, std::string var_name)
     {
