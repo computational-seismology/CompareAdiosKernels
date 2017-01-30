@@ -17,7 +17,12 @@
 #include <cmath>
 
 namespace kernel_validation {
-
+    /**
+     * Perform the dot product of a vector with itself (x1*x1 + x2*x2 + x3*x3 + ...)
+     * @tparam T Type of elements withn the vector. Typically ```float```
+     * @param v The input vector
+     * @return A value of type T containing the result
+     */
     template<typename T>
     T self_dot_product(const std::vector<T>& v)
     {
@@ -29,6 +34,17 @@ namespace kernel_validation {
         return res;
     }
 
+    /**
+     * Compute the difference between two vectors according to some metrics.
+     *
+     * Right now the metrics is ```ln ( u.u / v.v )```
+     * It is designed to run with MPI and to perform a reduction within a communicator.
+     * @tparam T The type of the vectors to compare
+     * @param comm The MPI communicator in which operations are ran
+     * @param u The first vector
+     * @param v The second vector
+     * @return The computed difference
+     */
     template<typename T>
     T compute_diff(const mpi::communicator& comm, const std::vector<T>& u, const std::vector<T>& v)
     {
@@ -47,8 +63,17 @@ namespace kernel_validation {
         return diff;
     }
 
+    /**
+     * Class providing methods to compare matching arrays from two files
+     */
     class KernelComparator {
     public:
+        /**
+         * Constructor
+         * @param comm The MPI communicator in which operations are ran
+         * @param ref_filename The name of the file containing the kernels acting as references
+         * @param val_filename The name of the file containing the kernels to be assessed
+         */
         KernelComparator(mpi::communicator comm,
                 std::string ref_filename,
                 std::string val_filename)
@@ -56,10 +81,23 @@ namespace kernel_validation {
                  ref_reader(ref_filename, comm),
                  val_reader(val_filename, comm) { }
 
+        /**
+         * Destructor
+         */
         ~KernelComparator() { }
 
+        /**
+         * Compare a single value from two different ADIOS files
+         * @param tolerance Accepted threshold when computing difference
+         * @param var_name Name of the kernel to compute the difference for
+         */
         void compare_single(float tolerance, std::string var_name);
 
+        /**
+         * Compare multiple values from two different ADIOS files
+         * @param tolerance Accepted threshold when computing difference
+         * @param kernel_list The list of kernel names to compute the difference for.
+         */
         void compare_multiple(float tolerance, std::vector<std::string> kernel_list);
 
     private:
@@ -67,6 +105,9 @@ namespace kernel_validation {
         ADIOSReader ref_reader;
         ADIOSReader val_reader;
     };
+
+    ///////////////////////////////////////////////////////////////////////////
+    /// Implementation
 
     void KernelComparator::compare_single(float tolerance, std::string var_name)
     {

@@ -13,22 +13,56 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
 namespace kernel_validation {
-
+    /**
+     * Default list of kernel names
+     */
     static const std::vector<std::string> default_kernels = {"rhonotprime_kl_crust_mantle", "kappa_kl_crust_mantle",
                                                              "beta_kl_crust_mantle", "bulk_c_kl_crust_mantle"};
 
+    /**
+     * Class to read cmd line parameters.
+     *
+     * Primarily designed to be used by mpi rank == 0, with later broadcasting to other processes.
+     * Should also work with all processes reading the cmd line.
+     */
     class Params {
     public:
+        /**
+         * Read the command line and assigne relevant values to class attributes
+         * @param argc The number of arguments from main()
+         * @param argv The list of arguments from main()
+         */
         void set_from_cmdline(int argc, char* argv[]);
 
+        /**
+         * Print parameter information
+         * @param buffer Where to write the arguments to. Typically std::cerr
+         */
         void print(std::ostream& buffer);
 
+        /**
+         * Accessor
+         * @return The name of the reference file
+         */
         std::string get_reference_file() { return reference_file; }
 
+        /**
+         * Accessor
+         * @return The name of the kernel file
+         */
         std::string get_kernels_file() { return kernels_file; }
 
+        /**
+         * Accessor
+         * @return The list of kernel names to be compared
+         */
         std::vector<std::string> get_kernel_names() { return kernel_names; }
 
+        /**
+         * Propagate parameters to process with rank != 0
+         * @param comm The MPI communicator in which operations are ran
+         * @param p Params instance for the calling process. Probably empty before the call, except for rank == 0
+         */
         friend void broadcast_params(mpi::communicator& comm, Params& p);
 
     private:
