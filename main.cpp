@@ -1,3 +1,19 @@
+/******************************************************************************
+ * Copyright 2017 Matthieu Lefebvre
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ *       limitations under the License.
+ ******************************************************************************/
+
 #include "kernel_comparator.h"
 #include "Params.h"
 #include "adios_reader.h"
@@ -32,7 +48,7 @@ int main(int argc, char* argv[])
 
         // Actual work
         kv::KernelComparator comparator(world, params.get_reference_file(), params.get_kernels_file());
-        comparator.compare_multiple(100.f, params.get_kernel_names());
+        comparator.compare_multiple(params.get_tolerance(), params.get_kernel_names());
 
         adios_read_finalize_method(ADIOS_READ_METHOD_BP);
         if (adios_errno) throw kv::adios_exception;
