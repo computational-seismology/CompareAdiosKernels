@@ -60,7 +60,7 @@ namespace kernel_validation {
     template<typename T>
     T compute_diff(const mpi::communicator& comm, const std::vector<T>& u, const std::vector<T>& v)
     {
-        T my_denominator = self_dot_product(v);
+        T my_denominator = self_dot_product(u);
         T full_denominator;
         mpi::reduce(comm, my_denominator, full_denominator, std::plus<T>(), 0);
 
