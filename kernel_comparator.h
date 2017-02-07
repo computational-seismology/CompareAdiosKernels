@@ -135,7 +135,7 @@ namespace kernel_validation {
                 buffer << "[" << var_name << "] is NaN.";
                 throw std::runtime_error(buffer.str());
             }
-            if (diff>tolerance) {
+            if (std::abs(diff)>tolerance) {
                 std::stringstream buffer;
                 buffer << "[" << var_name << "] over tolerance: " << diff << " > " << tolerance << ".";
                 throw std::runtime_error(buffer.str());
