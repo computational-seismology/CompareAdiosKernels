@@ -61,7 +61,7 @@ namespace kernel_validation {
             else {
                 throw std::runtime_error("Should specify a kernels file.");
             }
-            if (vm.count("precision")) {
+            if (vm.count("tolerance")) {
                 tolerance = vm["tolerance"].as<float>();
             }
             if (vm.count("kernel-names")) {
