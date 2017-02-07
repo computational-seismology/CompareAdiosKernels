@@ -126,7 +126,7 @@ namespace kernel_validation {
         if (!comm.rank()) std::cerr << "looking at kernel: " << var_name << std::endl;
 
         auto ref = ref_reader.schedule_read<float>(var_name, comm.rank());
-        auto val = ref_reader.schedule_read<float>(var_name, comm.rank());
+        auto val = val_reader.schedule_read<float>(var_name, comm.rank());
         auto diff = compute_diff(comm, ref, val);
 
         if (!comm.rank()) {
